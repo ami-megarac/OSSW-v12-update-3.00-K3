@@ -1,0 +1,4 @@
+01_use-proper-destdir.patch
+02_disable-failing-test.patch
+07_cmake.patch
+03-Disable-a-test-that-fails-under-Redis-7.x.patch

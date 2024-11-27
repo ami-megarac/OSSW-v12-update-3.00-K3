@@ -1,0 +1,113 @@
+From: Thomas Lee <debian@tomlee.co>
+Date: Sun, 4 Nov 2018 22:59:09 +0000
+Subject: CMake configuration for hiredis
+
+Forwarded: not-needed
+
+Last-Update: 2018-09-26
+---
+ HiredisConfig.cmake.in        |  5 +++++
+ HiredisConfigVersion.cmake.in | 22 ++++++++++++++++++++++
+ Makefile                      | 17 ++++++++++++++++-
+ 3 files changed, 43 insertions(+), 1 deletion(-)
+ create mode 100644 HiredisConfig.cmake.in
+ create mode 100644 HiredisConfigVersion.cmake.in
+
+diff --git a/HiredisConfig.cmake.in b/HiredisConfig.cmake.in
+new file mode 100644
+index 0000000..2cce290
+--- /dev/null
++++ b/HiredisConfig.cmake.in
+@@ -0,0 +1,5 @@
++find_path(HIREDIS_INCLUDE_DIRS hiredis/hiredis.h HINTS "/usr/include")
++find_library(HIREDIS_LIB_HIREDIS NAMES hiredis HINTS "/usr/lib")
++
++set(HIREDIS_LIBRARIES ${HIREDIS_LIB_HIREDIS})
++
+diff --git a/HiredisConfigVersion.cmake.in b/HiredisConfigVersion.cmake.in
+new file mode 100644
+index 0000000..584144a
+--- /dev/null
++++ b/HiredisConfigVersion.cmake.in
+@@ -0,0 +1,22 @@
++set(PACKAGE_VERSION "@HIREDIS_VERSION@")
++
++string(REPLACE "." ";" HIREDIS_VERSION_COMPONENTS ${PACKAGE_VERSION})
++string(REPLACE "." ";" REQUESTED_VERSION_COMPONENTS ${PACKAGE_FIND_VERSION})
++
++list(GET HIREDIS_VERSION_COMPONENTS 0 HIREDIS_VERSION_MAJOR)
++list(GET HIREDIS_VERSION_COMPONENTS 1 HIREDIS_VERSION_MINOR)
++
++list(GET REQUESTED_VERSION_COMPONENTS 0 REQUESTED_VERSION_MAJOR)
++list(GET REQUESTED_VERSION_COMPONENTS 1 REQUESTED_VERSION_MINOR)
++
++if(("${HIREDIS_VERSION_MAJOR}" EQUAL "${REQUESTED_VERSION_MAJOR}") AND
++    (("${HIREDIS_VERSION_MINOR}" EQUAL "${REQUESTED_VERSION_MINOR}") OR
++     ("${HIREDIS_VERSION_MINOR}" GREATER "${REQUESTED_VERSION_MINOR}")))
++    set(PACKAGE_VERSION_COMPATIBLE TRUE)
++    if("${PACKAGE_VERSION}" VERSION_EQUAL "${PACKAGE_FIND_VERSION}")
++        set(PACKAGE_VERSION_EXACT TRUE)
++    endif()
++else()
++    set(PACKAGE_VERSION_COMPATIBLE FALSE)
++endif()
++
+diff --git a/Makefile b/Makefile
+index c83e8c7..277db3a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -19,9 +19,11 @@ PREFIX?=$(DESTDIR)/usr
+ INCLUDE_PATH?=include/hiredis
+ LIBRARY_PATH?=lib
+ PKGCONF_PATH?=pkgconfig
++CMAKE_PATH?=cmake/Hiredis
+ INSTALL_INCLUDE_PATH= $(DESTDIR)$(PREFIX)/$(INCLUDE_PATH)
+ INSTALL_LIBRARY_PATH= $(DESTDIR)$(PREFIX)/$(LIBRARY_PATH)
+ INSTALL_PKGCONF_PATH= $(INSTALL_LIBRARY_PATH)/$(PKGCONF_PATH)
++INSTALL_CMAKE_PATH= $(INSTALL_LIBRARY_PATH)/$(CMAKE_PATH)
+ 
+ # redis-server configuration used for testing
+ REDIS_PORT=56379
+@@ -64,6 +66,8 @@ SSL_DYLIB_MAJOR_NAME=$(SSL_LIBNAME).$(DYLIBSUFFIX).$(HIREDIS_MAJOR)
+ SSL_DYLIBNAME=$(SSL_LIBNAME).$(DYLIBSUFFIX)
+ SSL_STLIBNAME=$(SSL_LIBNAME).$(STLIBSUFFIX)
+ SSL_DYLIB_MAKE_CMD=$(CC) $(PLATFORM_FLAGS) -shared -Wl,-soname,$(SSL_DYLIB_MINOR_NAME)
++CMAKECONFNAME=HiredisConfig.cmake
++CMAKEVERSNAME=HiredisConfigVersion.cmake
+ 
+ USE_SSL?=0
+ ifeq ($(USE_SSL),1)
+@@ -271,6 +275,7 @@ check: hiredis-test
+ 
+ clean:
+ 	rm -rf $(DYLIBNAME) $(STLIBNAME) $(SSL_DYLIBNAME) $(SSL_STLIBNAME) $(TESTS) $(PKGCONFNAME) examples/hiredis-example* *.o *.gcda *.gcno *.gcov
++	rm -f $(CMAKECONFNAME) $(CMAKEVERSNAME)
+ 
+ dep:
+ 	$(CC) $(CPPFLAGS) $(CFLAGS) -MM *.c
+@@ -306,7 +311,14 @@ $(SSL_PKGCONFNAME): hiredis_ssl.h
+ 	@echo Libs: -L\$${libdir} -lhiredis_ssl >> $@
+ 	@echo Libs.private: -lssl -lcrypto >> $@
+ 
+-install: $(DYLIBNAME) $(STLIBNAME) $(PKGCONFNAME) $(SSL_INSTALL)
++$(CMAKECONFNAME): $(CMAKECONFNAME).in
++	cp $(CMAKECONFNAME).in $(CMAKECONFNAME)
++
++$(CMAKEVERSNAME): $(CMAKEVERSNAME).in
++	sed -e "s,@HIREDIS_VERSION@,$(HIREDIS_MAJOR).$(HIREDIS_MINOR).$(HIREDIS_PATCH),g" \
++		$(CMAKEVERSNAME).in >$(CMAKEVERSNAME)
++
++install: $(DYLIBNAME) $(STLIBNAME) $(PKGCONFNAME) $(SSL_INSTALL) $(CMAKECONFNAME) $(CMAKEVERSNAME)
+ 	mkdir -p $(INSTALL_INCLUDE_PATH) $(INSTALL_INCLUDE_PATH)/adapters $(INSTALL_LIBRARY_PATH)
+ 	$(INSTALL) hiredis.h async.h read.h sds.h alloc.h sockcompat.h $(INSTALL_INCLUDE_PATH)
+ 	$(INSTALL) adapters/*.h $(INSTALL_INCLUDE_PATH)/adapters
+@@ -315,6 +327,9 @@ install: $(DYLIBNAME) $(STLIBNAME) $(PKGCONFNAME) $(SSL_INSTALL)
+ 	$(INSTALL) $(STLIBNAME) $(INSTALL_LIBRARY_PATH)
+ 	mkdir -p $(INSTALL_PKGCONF_PATH)
+ 	$(INSTALL) $(PKGCONFNAME) $(INSTALL_PKGCONF_PATH)
++	mkdir -p $(INSTALL_CMAKE_PATH)
++	$(INSTALL) $(CMAKECONFNAME) $(INSTALL_CMAKE_PATH)
++	$(INSTALL) $(CMAKEVERSNAME) $(INSTALL_CMAKE_PATH)
+ 
+ install-ssl: $(SSL_DYLIBNAME) $(SSL_STLIBNAME) $(SSL_PKGCONFNAME)
+ 	mkdir -p $(INSTALL_INCLUDE_PATH) $(INSTALL_LIBRARY_PATH)

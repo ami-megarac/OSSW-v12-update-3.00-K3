@@ -1,0 +1,21 @@
+From: Chris Lamb <lamby@debian.org>
+Date: Thu, 7 Jul 2022 16:37:03 +0100
+Subject: Disable a test that fails under Redis 7.x.
+
+---
+ test.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test.c b/test.c
+index 2cf1b5d..2ae08a6 100644
+--- a/test.c
++++ b/test.c
+@@ -1204,7 +1204,7 @@ static void test_blocking_connection(struct config config) {
+     test_cond(redisGetReply(c, NULL) == REDIS_OK);
+ 
+     get_redis_version(c, &major, NULL);
+-    if (major >= 6) test_resp3_push_handler(c);
++    if (major == 6) test_resp3_push_handler(c);
+     test_resp3_push_options(config);
+ 
+     test_privdata_hooks(config);
