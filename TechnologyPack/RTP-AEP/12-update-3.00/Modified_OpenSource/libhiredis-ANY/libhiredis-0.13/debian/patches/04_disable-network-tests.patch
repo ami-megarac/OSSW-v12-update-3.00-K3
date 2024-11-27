@@ -1,0 +1,26 @@
+Description: Disable "Returns error when host cannot be resolved"
+ This patch disables a test that relies on the presence of a
+ network connection.
+Author: Tobias Frost <tobi@debian.org>
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/test.c
++++ b/test.c
+@@ -343,6 +343,7 @@
+ static void test_blocking_connection_errors(void) {
+     redisContext *c;
+ 
++#if 0
+     test("Returns error when host cannot be resolved: ");
+     c = redisConnect((char*)"idontexist.test", 6379);
+     test_cond(c->err == REDIS_ERR_OTHER &&
+@@ -354,6 +355,9 @@
+          strcmp(c->errstr,"hostname nor servname provided, or not known") == 0 ||
+          strcmp(c->errstr,"no address associated with name") == 0));
+     redisFree(c);
++#else
++    test("SKIPPED: Returns error when host cannot be resolved\n");
++#endif
+ 
+     /*test("Returns error when the port is not open: ");
+     c = redisConnect((char*)"localhost", 1);

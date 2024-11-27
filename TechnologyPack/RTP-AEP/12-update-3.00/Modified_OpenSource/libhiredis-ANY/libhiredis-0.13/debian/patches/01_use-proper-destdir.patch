@@ -1,0 +1,17 @@
+Description: Make the Makefile use the $(DESTDIR) variable
+Origin: vendor
+Forwarded: not-needed
+From: Alessandro Ghedini <ghedo@debian.org>
+Last-Update: 2012-08-28
+
+--- a/Makefile
++++ b/Makefile
+@@ -15,7 +15,7 @@
+ HIREDIS_SONAME=$(shell grep HIREDIS_SONAME hiredis.h | awk '{print $$3}')
+ 
+ # Installation related variables and target
+-PREFIX?=/usr/local
++PREFIX?=$(DESTDIR)/usr
+ INCLUDE_PATH?=include/hiredis
+ LIBRARY_PATH?=lib
+ PKGCONF_PATH?=pkgconfig

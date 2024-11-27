@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+#export DH_VERBOSE=1
+
+REDIS   = $(shell [ -e /usr/bin/redis-server ] && echo 1 || echo 0)
+
+CFLAGS  = $(shell dpkg-buildflags --get CFLAGS)
+CFLAGS += $(shell dpkg-buildflags --get CPPFLAGS)
+
+DEB_DESTDIR ?= $(CURDIR)/debian/tmp
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	dh_auto_build -- DEBUG="-g" CFLAGS="$(CFLAGS)" ARCH=
+
+override_dh_auto_install:
+	dh_auto_install -- LIBRARY_PATH="lib/$(DEB_HOST_MULTIARCH)" \
+		PREFIX=/usr
+
+override_dh_installchangelogs:
+	dh_installchangelogs CHANGELOG.md
+
+override_dh_auto_test:
+ifeq ($(REDIS), 1)
+	make check
+endif
+
+override_dh_strip:
+	dh_strip --dbg-package=libhiredis-dbg
